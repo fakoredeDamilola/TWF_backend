@@ -1,10 +1,11 @@
-import { getModelForClass, prop, Ref } from "@typegoose/typegoose";
+import { getModelForClass, isDocumentArray, prop } from "@typegoose/typegoose";
 import mongoose from "mongoose";
 import { Field, ObjectType } from "type-graphql";
 import { Type } from "../utils/util";
 import { Client } from "./client.schema";
 import { MeasurementFrame } from "./measurementFrame.schema";
-
+import {OneToMany} from "typeorm";
+import { Store } from "./store.schema";
 
 type objectID = mongoose.Types.ObjectId;
 
@@ -23,7 +24,7 @@ export class User {
     name: string;
 
     @Field(() => String)
-    @prop({required:true, unique:true, trim : true})
+    @prop({unique:true, trim : true})
     email: string;
   
 
@@ -43,12 +44,36 @@ export class User {
     @prop()
     profileImage: string
 
-    // @Field(() => [Client])
-    // @prop({ ref: "Client", type: mongoose.Types.ObjectId  })
-    // clients: Ref<[Client]>
-    @Field(() => [Client])
-    @prop({ ref: "Client", type: mongoose.Types.ObjectId  })
-    clients: [objectID]
+    @Field(() => String)
+    @prop()
+    organization: string
+
+    // @Field(()=>[Notification])
+    // @prop({ ref: "Notification", type: Notification  })
+    // // @ts-ignore type unused
+    // @OneToMany(type => Notification, action => action.id)
+    // notifications?: Notification[];
+
+   @Field(()=> [Store])
+    @prop({ required: true , type : mongoose.Types.ObjectId, ref : "User"  })
+    cart?: objectID[];
+    
+    @Field((_type) => [Client])
+    @prop({ ref: "Client", type: Client  })
+    // @ts-ignore type unused
+    @OneToMany(type => Client, action => action.id)
+    clients?: Client[];
+    // public areAllClients(): boolean {
+    //   if (isDocumentArray(this.clients)) {
+    //     // "this.kittens" now has the type of "Cat"
+    //     return true;
+    //   } else {
+    //     return false;
+    //   }
+    // }
+    // @Field(()=> [Client])
+    // @prop({ required: true , type : mongoose.Types.ObjectId, ref : "User"  })
+    // clients?: objectID[];
 
   }
 

@@ -1,4 +1,4 @@
-import { prop } from "@typegoose/typegoose";
+import { getModelForClass, prop } from "@typegoose/typegoose";
 import { Field, ObjectType, registerEnumType } from "type-graphql";
 import { Status } from "../utils/util";
 
@@ -9,17 +9,20 @@ registerEnumType(Status, {
 
 @ObjectType()
 export class Materials {
+    @Field(()=> String)
+    id:string
+    
     @Field(() => String)
     name:string
 
     @Field(() => String)
     description:string
 
-    @Field(() => Number)
-    quantity:number
+    @Field(() => String)
+    quantity:string
 
-    @Field(() => Number)
-    price: number
+    @Field(() => String)
+    price: string
 }
 
 
@@ -35,33 +38,55 @@ name:string
 
 @Field(() => Number)
 @prop()
-amount: number;
+amount?: number;
+
+@Field(() => Number)
+@prop()
+amountPaid?: number;
+
+@Field(() => Number)
+@prop()
+amountRemaining?: number;
 
 @Field(() => String)
 @prop()
-style_image: string;
+style_image?: string;
 
 @Field(() => String)
 @prop()
-material_image: string;
+material_image?: string;
 
 @Field(()=>Date)
 @prop({default:new Date()})
-start_date?:Date;
+start_date:Date;
 
 @Field(()=>Date)
 @prop()
-end_date?:Date;
+end_date:Date;
 
 @Field(()=>Number)
 @prop()
-interest:number;
+interest?:number;
+
+@Field(()=>String)
+@prop()
+description?:string;
 
 @Field(()=>[Materials])
 @prop()
-materials:Materials[];
+materials?:Materials[];
+
+@Field(()=>String)
+@prop()
+clientName?:string;
+
+@Field(()=>String)
+@prop()
+clientID?:string;
 
 @Field(() => Status)
 @prop()
 status:string;
 }
+
+export const ClothesModel = getModelForClass(Clothes);

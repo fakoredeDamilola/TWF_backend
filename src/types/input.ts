@@ -1,5 +1,6 @@
 import { Field, ID, InputType, registerEnumType } from "type-graphql";
 import { Materials } from "../schema/clothes.schema";
+import { Notifications } from "../schema/Notification.schema";
 import { Gender, Status, Type } from "../utils/util";
 
 registerEnumType(Type,{
@@ -25,14 +26,25 @@ export class RegisterInput {
     @Field(()=>String)
     password: string;
 
+    @Field(()=>String)
+    organization: string;
+
     @Field(() => Type)
     type: Type;
 
 }
 
+@InputType()
+export class getNotificationInput {
+    @Field(()=>Number)
+    limit:number
+}
 
 @InputType()
 export class MeasurementFrameInput {
+
+    @Field(()=>String)
+    id?:string;
     
     @Field(()=>String)
     name:string;
@@ -63,6 +75,16 @@ export class ProfilePictureInput {
 }
 
 @InputType()
+export class startOrderInput{
+    @Field(()=>String)
+    clientID:string;
+
+    @Field(()=>String)
+    notificationID:string;
+
+}
+
+@InputType()
 export class ClientInput {
 
     @Field(()=>String)
@@ -84,6 +106,9 @@ export class ClientInput {
     @Field(() => String)
     image?: string
 
+    @Field(() => String)
+    phone?: string
+
     @Field(()=>String)
     description?:string
 
@@ -103,16 +128,19 @@ export class LoginInput {
 @InputType()
 export class MaterialInput {
     @Field(()=>String)
+    id?:string;
+
+    @Field(()=>String)
     name:string;
 
     @Field(()=>String)
     description:string;
 
-    @Field(()=>Number)
-    quantity:number;
+    @Field(()=>String)
+    quantity:string;
 
-    @Field(()=>Number)
-    price:number;
+    @Field(()=>String)
+    price:string;
 }
 
 
@@ -123,22 +151,32 @@ export class ClothesInput {
     name:string
 
     @Field(()=>Number)
-    amount:number
+    amount?:number
 
     @Field(()=>String)
-    style_image:string
+    style_image?:string
 
     @Field(()=>String)
-    material_image:string
+    material_image?:string
+
+    @Field(()=>String)
+    description?:string
 
     @Field(()=>Number)
-    interest:number
+    interest?:number
 
     @Field(()=>Status)
     status:Status
 
     @Field(()=> [MaterialInput])
     materials?:MaterialInput[]
+
+    @Field(()=>Date)
+    start_date:Date
+
+    @Field(()=>Date)
+    end_date:Date
+
 }
 
 @InputType()
@@ -152,10 +190,130 @@ export class AddClientClothesInput {
 }
 
 @InputType()
+export class AddClothesImageInput {
+    @Field(()=>String)
+    cloth_id:string
+
+    @Field(()=>String)
+    image:string
+}
+@InputType()
+export class ParamsInput {
+    @Field(()=>Number)
+    itemPerPage?:number
+    @Field(()=>Number)
+    page?:number
+
+    @Field(()=>String)
+    search?: string
+
+}
+@InputType()
+export class DeleteMaterialInput {
+    @Field(()=>String)
+    cloth_id?:string
+
+    @Field(()=>String)
+    name?:string
+
+    @Field(()=>String)
+    material_id:string
+}
+
+@InputType()
 export class AddClothesMaterialInput {
     @Field(() => String)
     cloth_id:string
 
     @Field(()=>[MaterialInput])
     materials :MaterialInput[]
+}
+
+
+@InputType()
+export class CartInput {
+   @Field(()=> String)
+   tailorID?:string
+
+   @Field(()=>String)
+   cartID?:string
+}
+
+@InputType()
+export class NotificationPayload {
+  @Field()
+  status?: boolean;
+
+  @Field(()=>Notifications)
+  notification?: Notifications;
+
+}
+
+
+@InputType()
+export class FetchUserInput {
+   @Field(()=> String)
+   name?:string
+
+   @Field(()=>String)
+   email?:string
+}
+
+@InputType()
+export class storeClothesInput {
+    @Field(()=>String)
+    name:string
+}
+
+@InputType()
+export class AddStoreClothesInput {
+    @Field(()=>String)
+    name:string
+
+    @Field(()=>String)
+    description:string
+
+    @Field(()=>Boolean)
+    draft:boolean
+
+    @Field(()=>String)
+    quantity:string
+
+    @Field(()=>[String])
+    sizeAvailable:string[]
+
+    @Field(()=>String)
+    clothURL:string
+
+    @Field(()=>[String])
+    sizes:string[]
+
+    @Field(()=>[String])
+    keyWords:string[]
+
+    @Field(()=>String)
+    price:string
+}
+
+@InputType()
+export class ClothesPriceInput {
+   @Field(()=> String)
+   cloth_id:string
+
+   @Field(()=>Number)
+   amount:number
+}
+
+
+@InputType()
+export class SearchParamsInput {
+    @Field(()=> Status)
+    status?:Status
+
+    @Field(()=> String)
+    name?:string
+
+    @Field(()=> String)
+    start_date?:string
+
 }

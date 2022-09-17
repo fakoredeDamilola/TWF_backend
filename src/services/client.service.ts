@@ -1,10 +1,11 @@
 import { clothesValidator, materialValidator, measurementValidator } from "../config/Validation"
-import { Client, ClientModel } from "../schema/client.schema"
-import { UserModel } from "../schema/user.schema"
+import { ClientModel } from "../schema/client.schema"
+import { User, UserModel } from "../schema/user.schema"
 import IContext from "../types/context"
 import {v4 as uuidv4} from "uuid"
-import { AddClientClothesInput, AddClothesMaterialInput, ClientInput, ClientMeasurementInput, MaterialInput, MeasurementFrameInput } from "../types/input"
-import { Clothes, Materials } from "../schema/clothes.schema"
+import mongoose from "mongoose";
+import { AddClientClothesInput, AddClothesImageInput, AddClothesMaterialInput, ClientInput, ClientMeasurementInput, DeleteMaterialInput, MaterialInput, MeasurementFrameInput, ParamsInput } from "../types/input"
+
 
 export class ClientService {
     async addClient(input:ClientInput,context:IContext) {
@@ -16,40 +17,28 @@ export class ClientService {
             await UserModel.findOneAndUpdate(
                 { _id: context.user?._id },
                 { $push: {
-                    clients: client?._id
+                    clients: client
                 }
             }, {new:true}
             )
-            let returnData = {client}
-            console.log(returnData)
+
+            let returnData = {client,status:true}
+            console.log({returnData})
             return returnData
         }catch(e) {
-            console.log(e)
+            return {message:"not logged in",status:false}
         }
     }
 
     async addMeasurement(input:ClientMeasurementInput ,context:IContext) {
         try{
 
-            let user = context.user
            let validation = input.measurement.map((item: MeasurementFrameInput)=>measurementValidator(item))
            .find((item)=>!item.status)
 
            if(validation){
             return validation
            }
-
-           const userData = await UserModel.findById(user?._id).populate("clients")
-
-           const findClient = userData?.clients.find((item)=>item._id.toString() ===input.client_id)
-
-           if(!findClient){
-            return {
-                status:false,
-                message:"This customer is not on your database"
-            }
-           }else {
-       
         let measurementInput = input.measurement.map(item =>{ return {
             ...item,
             id:uuidv4()
@@ -57,18 +46,64 @@ export class ClientService {
         const measurement = await ClientModel.findOneAndUpdate(
             {_id:input.client_id},
             {
-                $push : {
+                $addToSet : {
                     measurement: {
                         $each : measurementInput
                     }
                 }
-            }
+            },{new:true}
         )
-        return {status:true,result:measurement?.measurement}
-           }
+        // return {status:true,value:"Measurement added"}
+        return {status:true,value:measurement?.measurement}
 
         } catch(e){
             console.log(e)
+            return {status:false,message:"no client found"}
+        }
+    }
+
+    async editMeasurement(input:ClientMeasurementInput ,context:IContext) {
+        try{
+
+           let validation = input.measurement.map((item: MeasurementFrameInput)=>measurementValidator(item))
+           .find((item)=>!item.status)
+
+           if(validation){
+            return validation
+           }
+           const [inputVal] = input.measurement
+           console.log({inputVal})
+        const measurement = await ClientModel.findOneAndUpdate(
+            {_id:input.client_id,"measurement.id":inputVal?.id},
+            {
+                $set: {"measurement.$": inputVal}
+            },{new:true}
+        )
+        // return {status:true,value:"Measurement added"}
+        return {status:true,value:measurement?.measurement}
+
+        } catch(e){
+            console.log(e)
+            return {status:false,message:"no client found"}
+        }
+    }
+
+
+    async deleteMeasurement(input:DeleteMaterialInput, context:IContext) {
+        console.log({input}) // cloth id ==== client id
+        try{
+            if(context?.user){
+                const client = await ClientModel.findOneAndUpdate(
+                    {_id:input.cloth_id},
+                    {$pull:{"measurement":{"id":input.material_id}}},
+                    {new:true}
+                )
+                return {value:"deleted successfully",status:true}
+            }else {
+                return {message:"Not logged in",status:false}
+            }
+        }catch(e){
+            return {status:false,message:"error"}
         }
     }
 
@@ -77,13 +112,14 @@ export class ClientService {
       try {
         let user = context.user
         let validation =  clothesValidator(input.cloth)
+        
         if(!validation){
             return validation
         }else{
 
             const userData = await UserModel.findById(user?._id).populate("clients")
 
-            const findClient = userData?.clients.find((item)=>item._id.toString() ===input.client_id)
+            const findClient = userData?.clients && userData?.clients.find((item)=>item._id.toString() ===input.client_id)
             if(!findClient){
                 return {
                     status:false,
@@ -101,10 +137,10 @@ export class ClientService {
                         }
                     }
 
-                    }
+                    }, {new:true}
 
                 )
-                return { status:true,value:"Cloth added" }
+                return { status:true,clothes:cloth?.clothes }
             }
         }
 
@@ -113,17 +149,80 @@ export class ClientService {
       }
     }
 
-    async addClothesMaterial (input: AddClothesMaterialInput, context: IContext) {
+    async addClientImage(input:AddClothesImageInput,context:IContext){
         try{
-            let user = context?.user
-            const userData = await UserModel.findById(user?._id).populate({path:"clients",model:Client})
-            console.log(userData)
-            // const findCloth = userData?.clients?.clothes.find((item:Clothes)=> item?._id?.toString() === input.cloth_id)
-            // userData?.clients?.clothes.forEach((item:Clothes)=> console.log(item?._id?.toString()))
-            // console.log({findCloth})
-
+            const client = await ClientModel.findOneAndUpdate(
+                {_id:input.cloth_id},
+                {$set:{image:input.image}},
+                {new:true}
+            )
+            return {status:true,client}
         }catch(e){
+            console.log(e)
+        }
+    }
 
+    async clientList(params:ParamsInput,context:IContext) {
+        try{
+    let query:any = {}
+            console.log({params})
+   
+    if(params?.itemPerPage){
+        query.itemPerPage = params?.itemPerPage
+    }
+    if(params?.page){
+        query.page = params?.page
+    }
+
+    const record = query.itemPerPage ? query.itemPerPage : 20;
+      const page = query.page ? query.page : 1;
+      const prev_page: number = page > 0 ? page - 1 : 0;
+      let skip: number = record * prev_page;
+      console.log({skip,record},query.search)
+        let total = await UserModel.findById(context.user?._id)
+
+            const user =await UserModel.findById(context.user?._id).populate({
+                path:"clients",
+                options: {
+                    limit: record,
+                    sort: {  createdAt: 'desc'  },
+                    skip,
+                    // "name": { "$regex": query.search, "$options": "i" }
+                    match: { "name": { "$regex": "Dayo", "$options": "i" } }
+                 }
+        })
+        if(params?.search){
+            query.search = params?.search
+        }
+            return {clients:user?.clients, status:true,total:total?.clients?.length}
+        }catch(e){
+            console.log(e)
+            return {message:"an error occurred",status:false}
+        }
+    }
+
+    async getClient(input:string,context:IContext) {
+        try {
+            if(context.user?._id){
+                const client = await ClientModel.findById(input)
+                return {client,status:true}
+            }
+        }catch(e){
+            return {message:"an error occurred",status:false}
+        }
+    }
+
+    async clientMeasurement(input: string) {
+        try{
+            const client = await ClientModel.findById(input)
+            if(client){
+            return {measurement:client?.measurement,status:true}
+            }else{
+                return {status:false,message:"error"} 
+            }
+            
+        }catch(e){
+            return {status:false,message:"error"}
         }
     }
 }

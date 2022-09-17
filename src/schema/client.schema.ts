@@ -1,5 +1,6 @@
 import { getModelForClass, prop } from "@typegoose/typegoose";
 import { Field, ObjectType } from "type-graphql";
+import { OneToMany } from "typeorm";
 import { Gender } from "../utils/util";
 import { Clothes } from "./clothes.schema";
 import { MeasurementFrame } from "./measurementFrame.schema";
@@ -36,29 +37,23 @@ export class Client {
     @prop()
     image: string
 
-    // @Field(() => String)
-    // @prop()
-    // totalClothes: string
-
-    // @Field(() => String)
-    // @prop()
-    // clothesCompleted: string;
-
-
-    // @Field(() => String)
-    // @prop()
-    // totalAmountPaid: string;
-
-    // @Field(() => String)
-    // @prop()
-    // balanceAmount: string;
     @Field(()=>String)
     @prop()
     description:string
 
-    @Field(() => [Clothes])
+    @Field(()=>String)
     @prop()
-    clothes: Clothes[];
+    phone:string
+
+    // @Field(() => [Clothes])
+    // @prop()
+    // clothes: Clothes[];
+
+    @Field((_type) => [Clothes])
+    @prop({ ref: "Clothes", type: Clothes  })
+    // @ts-ignore type unused
+    @OneToMany(type => Clothes, action => action.id)
+    clothes?: Clothes[];
 
   }
 

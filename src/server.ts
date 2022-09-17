@@ -6,26 +6,53 @@ import express from "express"
 import mongoose from "mongoose"
 import { ApolloServer } from "apollo-server-express"
 
-import { AuthChecker, buildSchema } from "type-graphql"
-
+import { AuthChecker, buildSchema, buildTypeDefsAndResolvers } from "type-graphql"
+import { createServer } from 'http';
 import {
-    ApolloServerPluginLandingPageProductionDefault,
-    ApolloServerPluginLandingPageGraphQLPlayground,
-  } from 'apollo-server-core';
+  ApolloServerPluginDrainHttpServer,
+  ApolloServerPluginLandingPageLocalDefault,
+} from "apollo-server-core";
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { WebSocketServer } from 'ws';
+import { useServer } from 'graphql-ws/lib/use/ws';
+
 import customAuthChecker from "./config/authorization"
-import {resolvers} from "./resolver"
+import {Resolvers} from "./resolver"
 import IContext from "./types/context"
 import { verifyJwt } from "./utils"
 import { User } from "./schema/user.schema"
+// import {getConfiguredRedisPubSub} from "graphql-redis-subscriptions"
+
 
   const Bootstrap = async () => {
-    const schema = await buildSchema({
-        resolvers,
-        nullableByDefault: true,
-        authChecker: customAuthChecker
-    })
+
+    // const myRedisPubSub = getConfiguredRedisPubSub();
+    const { typeDefs, resolvers } = await buildTypeDefsAndResolvers({
+      resolvers: Resolvers,
+      // pubSub: myRedisPubSub,
+      nullableByDefault: true,
+      authChecker: customAuthChecker,
+    });
+  
+    const schema = makeExecutableSchema({ typeDefs, resolvers });
+    // const schema = await buildSchema({
+    //     resolvers,
+    //     nullableByDefault: true,
+    //     authChecker: customAuthChecker
+    // })
 
     const app = express()
+
+    
+    const httpServer = createServer(app);
+
+    const wsServer = new WebSocketServer({
+      // This is the `httpServer` we created in a previous step.
+      server: httpServer,
+      // Pass a different path here if your ApolloServer serves at
+      // a different path.
+      path: '/graphql',
+    });
 
     const server = new ApolloServer({
         schema,
@@ -41,12 +68,24 @@ import { User } from "./schema/user.schema"
         },
     introspection: process.env.NODE_ENV !== 'production',
     plugins: [
-      process.env.NODE_ENV === 'production'
-        ? ApolloServerPluginLandingPageProductionDefault()
-        : ApolloServerPluginLandingPageGraphQLPlayground(),
+      // process.env.NODE_ENV === 'production'
+      //   ? ApolloServerPluginLandingPageProductionDefault()
+      //   : ApolloServerPluginLandingPageGraphQLPlayground(),
+        ApolloServerPluginDrainHttpServer({ httpServer }),
+        {
+          async serverWillStart() {
+            return {
+              async drainServer() {
+                await serverCleanup.dispose();
+              },
+            };
+          },
+        },
+        ApolloServerPluginLandingPageLocalDefault({ embed: true })
     ],
     csrfPrevention: true
     })
+    
 
     await server.start()
 
@@ -61,8 +100,11 @@ import { User } from "./schema/user.schema"
     server.applyMiddleware({app,path:"/graphql",cors:corsOptions})
 
     const PORT = process.env.PORT || 4000
+    
+    const serverCleanup = useServer({ schema }, wsServer);
 
-    app.listen({port:PORT},() => {
+
+    httpServer.listen({port:PORT},() => {
         console.log(`Server is running on port ${PORT}`)
     })
 

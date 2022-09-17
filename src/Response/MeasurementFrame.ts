@@ -11,7 +11,7 @@ class MeasurementFrameSuccessResponse {
     status?:boolean
 
     @Field(()=> [MeasurementFrame])
-    measurementFrame?:MeasurementFrame[]
+    measurementFrame?:string
 
 }
 
@@ -24,8 +24,7 @@ export const MeasurementFrameResponse = createUnionType({
         MeasurementFrameSuccessResponse,
     ] as const,
     resolveType: (value) => {
-        console.log({value})
-        if('result' in value){
+        if('value' in value){
             return MeasurementFrameSuccessResponse
         }
         if('message' in value){
